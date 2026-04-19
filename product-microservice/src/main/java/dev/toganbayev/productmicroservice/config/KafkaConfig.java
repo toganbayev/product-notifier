@@ -14,6 +14,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+// Configures Kafka producer for publishing product creation events with reliability guarantees
 @Configuration
 public class KafkaConfig {
 
@@ -44,6 +45,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.producer.properties.max.in.flight.requests.per.connection}")
     private String maxInFlightRequests;
 
+    // Builds Kafka producer configuration with idempotence and ordering guarantees
     Map<String, Object> producerConfigs() {
         Map<String, Object> config = new HashMap<>();
 
@@ -60,16 +62,19 @@ public class KafkaConfig {
         return config;
     }
 
+    // Factory for creating Kafka producers with configured reliability settings
     @Bean
     ProducerFactory<String, ProductCreatedEvent> producerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfigs());
     }
 
+    // Template for sending ProductCreatedEvent messages to Kafka
     @Bean
     KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate() {
         return new KafkaTemplate<String, ProductCreatedEvent>(producerFactory());
     }
 
+    // Topic definition: 3 partitions for parallel processing, 3 replicas for durability
     @Bean
     NewTopic createTopic() {
 

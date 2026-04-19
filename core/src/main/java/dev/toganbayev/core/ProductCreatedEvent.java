@@ -2,6 +2,7 @@ package dev.toganbayev.core;
 
 import java.math.BigDecimal;
 
+// Shared event contract for product creation events across microservices
 public class ProductCreatedEvent {
 
     private String productId;
