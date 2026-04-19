@@ -1,0 +1,38 @@
+# IDE
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# Claude Code
+CLAUDE.md
+.claude/
+
+# macOS
+.DS_Store
+
+# Maven
+target/
+*.class
+*.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.flattened-pom.xml
+
+# Gradle
+.gradle/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Environment
+.env
+.env.local
+*.properties.local
