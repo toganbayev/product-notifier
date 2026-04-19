@@ -94,8 +94,23 @@ Event-driven microservices monorepo for product management and email notificatio
 5. Email Consumer (@KafkaListener) receives event
                          │
                          ▼
-6. ProductCreatedEventHandler processes event
-   (currently logs; ready for email dispatch)
+6. ProductCreatedEventHandler calls mock-service
+   (GET http://localhost:8090/response/200)
+                         │
+         ┌───────────────┼───────────────┐
+         ▼               ▼               ▼
+   SUCCESS       RETRYABLE ERR    NON-RETRYABLE ERR
+   (HTTP 200)    (Network,       (HTTP 5xx, other)
+                  Connection)
+         │               │               │
+         └───────────────┼───────────────┘
+                         ▼
+         RETRY LOGIC (FixedBackOff 3s × 3)
+                         │
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+    SUCCESS              EXHAUSTED RETRIES/NON-RETRYABLE
+    (Complete)           → DeadLetterTopic
 ```
 
 ### Module Dependency Tree
@@ -104,12 +119,17 @@ Event-driven microservices monorepo for product management and email notificatio
 email-notification-microservice
   ├─ spring-boot-starter-kafka (consumer)
   ├─ spring-boot-starter-webmvc
+  ├─ RestTemplate (HTTP calls to mock-service)
   └─ core (ProductCreatedEvent)
 
 product-microservice
   ├─ spring-boot-starter-kafka (producer)
   ├─ spring-boot-starter-webmvc
   └─ core (ProductCreatedEvent)
+
+mock-service (port 8090)
+  ├─ spring-boot-starter-web
+  └─ [no external dependencies]
 
 core
   ├─ ProductCreatedEvent.java (shared event)
@@ -163,23 +183,55 @@ core
 
 ### 3. email-notification-microservice/
 
-**Event consumer service** that receives product creation events and processes them (currently logs; ready for email implementation).
+**Event consumer service** that receives product creation events, validates processing via HTTP call to mock-service, and routes failures to Dead Letter Topic based on exception type.
 
 **Responsibilities:**
 - Listen to `product-created-events-topic` on Kafka
 - Deserialize `ProductCreatedEvent` messages
-- Handle events (currently logs to LOGGER)
-- Ready for email dispatch implementation
+- Call mock-service HTTP endpoint (`GET /response/200`) to verify processing
+- Route retryable errors (network failures) to DLT with exponential backoff (3s × 3 retries)
+- Route non-retryable errors (4xx, other) directly to DLT
+- Leverage exception-based routing to separate transient vs permanent failures
 
 **Key Components:**
+- `EmailNotificationConfig` - Spring configuration
+  - Provides `RestTemplate` bean for HTTP calls
 - `ProductCreatedEventHandler` - Kafka listener
   - Annotation: `@KafkaListener(topics = "product-created-events-topic")`
-  - Method: `handle(ProductCreatedEvent)`
-- Event processing logic
+  - Method: `handle(ProductCreatedEvent)` - calls mock-service, throws typed exceptions
+- `RetryableException` - wraps transient errors (network timeouts, connection refused)
+- `NonRetryableException` - wraps permanent errors (server errors, validation failures)
+- `KafkaConfig` - configures error handling
+  - FixedBackOff: 3-second intervals, 3 retry attempts
+  - Registered retryable/non-retryable exception classes
+  - DeadLetterPublishingRecoverer routes to DLT after retries exhausted
 
 **Build:** `mvn -pl email-notification-microservice clean package`
 
 **Run:** `mvn -pl email-notification-microservice spring-boot:run`
+
+---
+
+### 4. mock-service/
+
+**Test utility service** that simulates external HTTP endpoints for validating email-notification-microservice error handling and retry behavior.
+
+**Responsibilities:**
+- Serve mock HTTP responses for testing different status codes
+- Provide endpoints to simulate success, server errors, and timeouts
+- Enable testing of retry logic and DLT routing in isolation
+
+**Key Components:**
+- `StatusCheckController` - REST controller
+  - `GET /response/200` - returns HTTP 200 OK (success)
+  - `GET /response/500` - returns HTTP 500 Internal Server Error (server failure)
+- `MockServiceApplication` - Spring Boot entry point
+
+**Port:** 8090
+
+**Build:** `mvn -pl mock-service clean package`
+
+**Run:** `mvn -pl mock-service spring-boot:run`
 
 ---
 
@@ -260,6 +312,12 @@ mvn -pl email-notification-microservice spring-boot:run
 # Output: Tomcat started on port(s): YYYYY (http)
 ```
 
+**Terminal 3 - Mock Service (required by email-notification-microservice):**
+```bash
+mvn -pl mock-service spring-boot:run
+# Output: Tomcat started on port(s): 8090 (http)
+```
+
 #### 5. Test the Flow
 
 ```bash
@@ -278,9 +336,15 @@ curl -X POST http://localhost:XXXXX/product \
 "550e8400-e29b-41d4-a716-446655440000"
 ```
 
-**Expected Logs (Terminal 2):**
+**Expected Logs (Terminal 2 - Email Notification Microservice):**
 ```
 Received event: Spring Boot Mug
+Received response 200
+```
+
+**Expected Logs (Terminal 3 - Mock Service):**
+```
+GET /response/200 called
 ```
 
 ---
