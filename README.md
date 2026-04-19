@@ -55,15 +55,15 @@ Event-driven microservices monorepo for product management and email notificatio
 │  └──────────────────────┘              │                      │
 │                                        │                      │
 │                                        ▼                      │
-│  ┌──────────────────────┐    ┌──────────────────────┐         │
-│  │                      │    │                      │         │
-│  │ Email Notification   │    │ ProductCreatedEvent  │         │
-│  │ Microservice         │◀───│ Handler              │         │
-│  │ ─────────────────────│    │ @KafkaListener       │         │
-│  │ Event Consumer       │    │                      │         │
-│  │ Receives Events      │    │ Consumes Messages    │         │
-│  │ (Ready for emails)   │    │                      │         │
-│  └──────────────────────┘    └──────────────────────┘         │
+│  ┌──────────────────────┐       ┌──────────────────────┐      │
+│  │                      │       │                      │      │
+│  │ Email Notification   │       │ ProductCreatedEvent  │      │
+│  │ Microservice         │◀──────│ Handler              │      │
+│  │ ─────────────────────│       │ @KafkaListener       │      │
+│  │ Event Consumer       │       │                      │      │
+│  │ Receives Events      │       │ Consumes Messages    │      │
+│  │ (Ready for emails)   │       │                      │      │
+│  └──────────────────────┘       └──────────────────────┘      │
 │                                                               │
 │  ┌──────────────────────┐                                     │
 │  │                      │                                     │
