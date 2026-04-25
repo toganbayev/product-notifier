@@ -31,7 +31,7 @@ public class ProductCreatedEventHandler {
     private final Logger LOGGER = LoggerFactory.getLogger(ProductCreatedEventHandler.class);
 
     private final RestTemplate restTemplate;
-    private ProcessedEventRepository processedEventRepository;
+    private final ProcessedEventRepository processedEventRepository;
 
     public ProductCreatedEventHandler(RestTemplate restTemplate, ProcessedEventRepository processedEventRepository) {
         this.restTemplate = restTemplate;
@@ -45,8 +45,6 @@ public class ProductCreatedEventHandler {
                        @Header("messageId") String messageId,
                        @Header(KafkaHeaders.RECEIVED_KEY) String messageKey) {
         LOGGER.info("Received event: {}, productId: {}", productCreatedEvent.getTitle(), productCreatedEvent.getProductId());
-        // External service endpoint for sending notifications
-        String url = "http://localhost:8090/response/200";
 
         ProcessedEventEntity processedEventEntity = processedEventRepository.findByMessageId(messageId);
 
@@ -56,6 +54,8 @@ public class ProductCreatedEventHandler {
         }
 
         try {
+            // External service endpoint for sending notifications
+            String url = "http://localhost:8090/response/200";
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, null, String.class);
 
             if (response.getStatusCode().value() == HttpStatus.OK.value()) {
