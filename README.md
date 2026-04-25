@@ -681,7 +681,7 @@ docker run -d --name email-notification-microservice \
 
 ## Roadmap
 
-### Phase 1: Event Foundation ✅
+### Phase 1: Event Foundation [DONE]
 
 - [x] Core module with `ProductCreatedEvent`
 - [x] Product microservice with REST API
