@@ -206,6 +206,14 @@ core
   - Registered retryable/non-retryable exception classes
   - DeadLetterPublishingRecoverer routes to DLT after retries exhausted
 
+**Data Inspection:**
+- **REST Endpoint:** `GET /api/events` - Returns all processed events from H2 database
+  - Response: JSON array of `ProcessedEventEntity` objects
+  - Fields: `messageId`, `productId`, `id`
+  - Example: `curl http://localhost:PORT/api/events`
+- **Database:** H2 in-memory (jdbc:h2:mem:testdb)
+- **Note:** H2 web console not available on Spring Boot 4.0.5 due to javax/jakarta incompatibility
+
 **Build:** `mvn -pl email-notification-microservice clean package`
 
 **Run:** `mvn -pl email-notification-microservice spring-boot:run`
@@ -246,6 +254,7 @@ core
 | **API** | Spring Boot Web MVC |
 | **Serialization** | Jackson JSON |
 | **Logging** | SLF4J / Logback |
+| **Database** | H2 (in-memory) |
 
 ---
 
